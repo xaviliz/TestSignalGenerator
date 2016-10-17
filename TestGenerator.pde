@@ -81,6 +81,7 @@ void generateSweepSine(double f1, double f2){
 }
 
 void generateMLS(){
+  
 }
 
 // Put signal in a byte stream
