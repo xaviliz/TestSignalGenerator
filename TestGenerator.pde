@@ -31,7 +31,8 @@ int nsamp = (int)(fs*dur);
 void setup() {
   //generateSineWave();
   //generateWhiteNoise();
-  generateSweepSine(f1,f2);
+  //generateSweepSine(f1,f2);
+  generateMLS(4);
   // Put signal in a byte stream 
   float2Byte();
   AudioInputStream audioInputStream = set4saving();
@@ -80,8 +81,36 @@ void generateSweepSine(double f1, double f2){
   }
 }
 
-void generateMLS(){
-  
+void generateMLS(int N){
+  // Initialize abuff array to ones
+  // Generate pseudo random signal
+   int taps=4, tap1=2, tap2=3, tap3=5, tap4=16;
+   int[] abuff = new int[N];
+   // fill with ones
+   for (int i = 0; i<abuff.length;i++){
+     abuff[i] = 1;
+   }
+   for(int i = (int) Math.pow(2.,N); i>1; i--){
+     // feedback bit
+     //boolean xorbit = ((abuff[tap1]) != (abuff[tap2]));
+     int xorbit = abuff[tap1] ^ abuff[tap2];
+     println(xorbit);
+     // second logic level
+     if (taps==4){
+      int xorbit2 = abuff[tap3] ^ abuff[tap4]; //4 taps = 3 xor gates & 2 levels of logic
+      xorbit = xorbit ^ xorbit2;        //second logic level
+     }
+     // Circular buffer
+     for (int j= N-1; j>0; j++){
+       int temp = abuff[j-1];
+       abuff[j] = temp;
+     }
+     
+     // Evaluate if the last if is correct, it should move the array one position
+     // like this abuff = [xorbit abuff(1:n-1)];
+     abuff[0] = xorbit;
+     y[i] = (-2 * xorbit) + 1;
+   }
 }
 
 // Put signal in a byte stream
