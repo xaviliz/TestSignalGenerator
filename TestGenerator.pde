@@ -171,3 +171,5 @@ double log2(double x){
   double res = Math.log10(x)/Math.log10(2.);
   return res;
 }
+
+/* TODO - include taps values for other bits resolution on MLS signal */
