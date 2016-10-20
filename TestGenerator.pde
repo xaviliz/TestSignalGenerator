@@ -22,17 +22,29 @@ String filename = "test.wav";
 double amplitude = 1.0;
 double twoPi = 2.*Math.PI;
 double twoPiF = f1*twoPi;
-float[] buffer = new float[(int) (dur * fs)];
-byte[] byteBuffer = new byte[buffer.length * (int)dur];
+//float[] buffer = new float[(int) (dur * fs)];
+int N = 16;
+//float[] buffer = new float[(int) Math.pow(2,N)];
+ArrayList<Float> buffer = new ArrayList<Float>();   // replace f with ft use .add() and .get()
+//byte[] byteBuffer = new byte[buffer.length * (int)dur];
+ArrayList<Byte> byteBuffer= new ArrayList<Byte>();
 boolean bigEndian = false;
 boolean signed = true;
 int nsamp = (int)(fs*dur);
-
+String testMethod = "MLS";
 void setup() {
-  //generateSineWave();
-  //generateWhiteNoise();
-  //generateSweepSine(f1,f2);
-  generateMLS(4);
+  if (testMethod == "Sine")
+    generateSineWave();
+  else if (testMethod == "Noise")
+    generateWhiteNoise();
+  else if (testMethod == "Swept Tone")
+    generateSweepSine(f1,f2);
+  else if (testMethod == "MLS")
+    generateMLS(N);
+  else{
+    println("Define an available test signal as: Sine, Noise, Swept Tone or MLS");
+    exit();
+  }
   // Put signal in a byte stream 
   float2Byte();
   AudioInputStream audioInputStream = set4saving();
@@ -47,23 +59,35 @@ void mousePressed() {
 
 // The best way to synthesis a file with JavaSound
 void generateSineWave() {
+  println("Generating Sine wave signal...");
   // Generate signal
-  for (int sample = 0; sample < buffer.length; sample++) {
+  for (int sample = 0; sample < nsamp; sample++) {
       double time = sample / fs;
-      buffer[sample] = (float) (amplitude * Math.sin(twoPiF * time));
+      //buffer[sample] = (float) (amplitude * Math.sin(twoPiF * time));
+      buffer.add((float) (amplitude * Math.sin(twoPiF * time)));
   }
 }
 
 void generateWhiteNoise() {
+  println("Generating white noise...");
   // Generate signal
   double Max = amplitude;
   double Min = -amplitude;
-  for (int sample = 0; sample < buffer.length; sample++) {
-      buffer[sample] = (float) ((Math.random()*(Max-Min))-1.);
+  for (int sample = 0; sample < nsamp; sample++) {
+      //buffer[sample] = (float) ((Math.random()*(Max-Min))-1.);
+      buffer.add((float) ((Math.random()*(Max-Min))-1.));
   }
 }
 
 void generateSweepSine(double f1, double f2){
+  if (f1<1)
+    f1 = 1;
+  else if (f2>f1)
+    println("Generating Swept tone signal...");
+  else{
+    println("Error defining f1 and f2, f2 must be greater than f1");
+    exit();
+  }
   //f1 = f1+epsilon; // avoiding 0 frequency
   // convert to log2
   double b1 = log2(f1);
@@ -73,18 +97,21 @@ void generateSweepSine(double f1, double f2){
   // defining step by time resolution
   double step = rb/nsamp;
   double nf = b1 ;   // new frequency
-  for (int sample = 0; sample < buffer.length; sample++) {
+  for (int sample = 0; sample < nsamp; sample++) {
       double time = sample / fs;
       double f = Math.pow(2.,nf);
-      buffer[sample] = (float) (amplitude * Math.sin(twoPi* f * time));
+      //buffer[sample] = (float) (amplitude * Math.sin(twoPi* f * time));
+      buffer.add((float) (amplitude * Math.sin(twoPi* f * time)));
       nf = nf +step;
   }
 }
 
 void generateMLS(int N){
+  println("Generating MLS signal...");
   // Initialize abuff array to ones
   // Generate pseudo random signal
-   int taps=4, tap1=2, tap2=3, tap3=5, tap4=16;
+  nsamp = (int)Math.pow(2,N);
+   int taps=4, tap1=1, tap2=2, tap3=4, tap4=15;
    int[] abuff = new int[N];
    // fill with ones
    for (int i = 0; i<abuff.length;i++){
@@ -92,43 +119,49 @@ void generateMLS(int N){
    }
    for(int i = (int) Math.pow(2.,N); i>1; i--){
      // feedback bit
-     //boolean xorbit = ((abuff[tap1]) != (abuff[tap2]));
      int xorbit = abuff[tap1] ^ abuff[tap2];
-     println(xorbit);
      // second logic level
      if (taps==4){
       int xorbit2 = abuff[tap3] ^ abuff[tap4]; //4 taps = 3 xor gates & 2 levels of logic
       xorbit = xorbit ^ xorbit2;        //second logic level
      }
      // Circular buffer
-     for (int j= N-1; j>0; j++){
+     for (int j= N-1; j>0; j--){
        int temp = abuff[j-1];
        abuff[j] = temp;
      }
-     
-     // Evaluate if the last if is correct, it should move the array one position
-     // like this abuff = [xorbit abuff(1:n-1)];
      abuff[0] = xorbit;
-     y[i] = (-2 * xorbit) + 1;
+     // fill sample value
+     //buffer[i] = (-2 * xorbit) + 1;
+     buffer.add((float)(-2 * xorbit) + 1);
    }
 }
 
 // Put signal in a byte stream
 void float2Byte() {
   int bufferIndex = 0;
-  for (int i = 0; i < byteBuffer.length; i++) {
-    final int x = (int) (buffer[bufferIndex++] * 32767.0);
-    byteBuffer[i] = (byte) x;
+  println(buffer.size());
+  //for (int i = 0; i < nsamp*dur; i++) {
+    while (bufferIndex<buffer.size()){
+    final int x = (int) (buffer.get(bufferIndex++) * 32767.0);
+    /*byteBuffer[i] = (byte) x;
     i++;
-    byteBuffer[i] = (byte) (x >>> 8);
-  }
+    byteBuffer[i] = (byte) (x >>> 8);*/
+    byteBuffer.add((byte) x);
+    byteBuffer.add((byte) (x >>> 8));
+    }
+  //}
 }
 
 // Set format and byte buffer
 AudioInputStream set4saving(){
   AudioFormat format = new AudioFormat((float)fs, nbits, channels, signed, bigEndian);
-  ByteArrayInputStream bais = new ByteArrayInputStream(byteBuffer);
-  AudioInputStream audioInputStream = new AudioInputStream(bais, format,buffer.length);
+  byte[] result = new byte[byteBuffer.size()];
+  for(int i = 0; i < byteBuffer.size(); i++) {
+    result[i] = byteBuffer.get(i).byteValue();
+  }
+  ByteArrayInputStream bais = new ByteArrayInputStream(result);
+  AudioInputStream audioInputStream = new AudioInputStream(bais, format,buffer.size());
   return audioInputStream;
 }
 
@@ -145,5 +178,5 @@ void saveAudioFile(AudioInputStream ais, String filename){
 
 double log2(double x){
   double res = Math.log10(x)/Math.log10(2.);
- return res;
+  return res;
 }
