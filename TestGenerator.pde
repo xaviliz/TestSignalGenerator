@@ -172,4 +172,12 @@ double log2(double x){
   return res;
 }
 
-/* TODO - include taps values for other bits resolution on MLS signal */
+/* 
+TODO 
+- include taps values for other bits resolution on MLS signal
+- Implement Test Generator on Android and play signals.
+- Apply DSP to get H(w) for Sweept tone and MLS 
+- Results have to be shown on dynaton_LogGrid
+- Start to works on WLAN communication
+- Implement application on Java to communicate with myRoomie.
+*/
